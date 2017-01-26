@@ -1,0 +1,12 @@
+#!/bin/bash
+if [[ $(ls "${3}/Library/BESAgent/"*.id) ]]; then
+	echo "Found id file, removing..."
+	rm "${3}/Library/BESAgent/"*.id
+fi
+
+if [ "${3}" == "/" ]; then
+	echo "Target is internal drive, stoping daemon..."
+	launchctl unload /Library/LaunchDaemons/BESAgentDaemon.plist
+fi
+
+exit 0

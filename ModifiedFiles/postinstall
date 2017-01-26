@@ -1,0 +1,51 @@
+#!/bin/bash
+
+# Matt Hansen (mah60@psu.edu) - 3/3/2014
+# modified for DEP by rzm102 - 01/25/2016
+
+/usr/sbin/chown root:wheel "${3}/Library/LaunchDaemons/BESAgentDaemon.plist"
+
+/usr/sbin/chown -f -R root:wheel "${3}/Library/BESAgent"
+
+/bin/chmod -f -R go-wx "${3}/Library/BESAgent"
+/bin/chmod -f -R go+X "${3}/Library/BESAgent"
+
+if [[ ! -e "${3}/Library/Application Support/BigFix/BES Agent/" ]]; then
+	mkdir -p "${3}/Library/Application Support/BigFix/BES Agent/"
+fi
+/usr/sbin/chown -f -R root:wheel "${3}/Library/Application Support/BigFix/BES Agent"
+
+if [[ ! -f "${3}/Library/Preferences/com.bigfix.BESAgent.plist" ]]; then
+	if [[ -f "clientsettings.cfg" ]]; then
+		echo "No com.bigfix.BESAgent.plist on the host, found clientsettings.cfg"
+		"${3}/Library/BESAgent/BESAgent.app/Contents/MacOS/CfgToPList.pl" "clientsettings.cfg" "${3}/Library/Preferences/com.bigfix.BESAgent.plist"
+	fi
+fi
+
+if [[ -f "brand.txt" ]]; then
+	echo "Found brand.txt, checking for com.bigfix.BESAgent.plist"
+	if [[ -f "${3}/Library/Preferences/com.bigfix.BESAgent.plist" ]]; then
+		BESBRAND=$(cat "brand.txt")
+		echo "Found com.bigfix.BESAgent.plist, adding brand: $BESBRAND"
+		defaults write "${3}/Library/Preferences/com.bigfix.BESAgent.plist" Brand -string "$BESBRAND"
+	else
+		echo "Could not find com.bigfix.BESAgent.plist"
+	fi
+fi
+
+if [[ -f "actionsite.afxm" ]]; then
+	echo "Found actionsite.afxm, installing it..."
+	cp "actionsite.afxm" "${3}/Library/Application Support/BigFix/BES Agent/"
+fi
+
+if [[ $(ls *.id) ]]; then
+	echo "Found id file, copying..."
+	cp $(ls *.id) "${3}/Library/BESAgent/"
+fi
+
+if [ "${3}" == "/" ]; then
+	echo "Target is internal drive, starting daemon..."
+	launchctl load /Library/LaunchDaemons/BESAgentDaemon.plist
+fi
+
+exit 0
